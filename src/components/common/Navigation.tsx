@@ -29,7 +29,7 @@ const Navigation: React.FC = () => {
               to={item.path}
               className={`flex flex-col items-center py-3 px-2 ${
                 isActive(item.path) 
-                  ? 'text-chairismatic-pink' 
+                  ? 'text-cairismatic-pink' 
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -37,7 +37,7 @@ const Navigation: React.FC = () => {
               <span className="text-xs mt-1">{item.label}</span>
               {isActive(item.path) && (
                 <motion.div 
-                  className="absolute bottom-0 h-1 w-6 bg-gradient-to-r from-chairismatic-pink to-chairismatic-purple rounded-t-lg"
+                  className="absolute bottom-0 h-1 w-6 bg-gradient-to-r from-cairismatic-pink to-cairismatic-purple rounded-t-lg"
                   layoutId="indicator"
                 />
               )}
@@ -52,7 +52,7 @@ const Navigation: React.FC = () => {
           <div className="flex justify-between items-center">
             <Link to="/" className="flex items-center space-x-2">
               <span className="text-xl font-bold">
-                <GradientText>ChAIrismatic</GradientText>
+                <GradientText>cAIrismatic</GradientText>
               </span>
             </Link>
             <nav className="flex space-x-6">
@@ -62,15 +62,15 @@ const Navigation: React.FC = () => {
                   to={item.path}
                   className={`relative flex items-center px-3 py-2 transition-colors ${
                     isActive(item.path)
-                      ? 'text-chairismatic-pink'
-                      : 'text-gray-600 hover:text-chairismatic-pink'
+                      ? 'text-cairismatic-pink'
+                      : 'text-gray-600 hover:text-cairismatic-pink'
                   }`}
                 >
                   {item.icon}
                   <span className="ml-2">{item.label}</span>
                   {isActive(item.path) && (
                     <motion.div 
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-chairismatic-pink to-chairismatic-purple"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cairismatic-pink to-cairismatic-purple"
                       layoutId="nav-indicator"
                     />
                   )}
