@@ -14,22 +14,22 @@ const Landing: React.FC = () => {
 
   const features = [
     {
-      icon: <Camera className="w-10 h-10 text-cairismatic-pink" />,
+      icon: <Camera className="w-10 h-10 text-chairismatic-pink" />,
       title: 'Real-time AI Coaching',
       description: 'Get personalized, step-by-step guidance from your AI beauty coach as you apply makeup.'
     },
     {
-      icon: <Search className="w-10 h-10 text-cairismatic-purple" />,
+      icon: <Search className="w-10 h-10 text-chairismatic-purple" />,
       title: 'Analyze Any Look',
       description: 'Upload photos or social media looks and instantly decode the products and techniques used.'
     },
     {
-      icon: <Award className="w-10 h-10 text-cairismatic-blue" />,
+      icon: <Award className="w-10 h-10 text-chairismatic-blue" />,
       title: 'Track Your Progress',
       description: 'See your beauty skills improve over time with detailed progress tracking and achievements.'
     },
     {
-      icon: <Star className="w-10 h-10 text-cairismatic-pink" />,
+      icon: <Star className="w-10 h-10 text-chairismatic-pink" />,
       title: 'Product Recommendations',
       description: 'Get personalized product suggestions tailored to your skin tone and preferences.'
     },
@@ -43,7 +43,7 @@ const Landing: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero Section */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-br from-cairismatic-pink via-cairismatic-purple to-cairismatic-blue overflow-hidden">
+      <section className="relative py-16 md:py-24 bg-gradient-to-br from-chairismatic-pink via-chairismatic-purple to-chairismatic-blue overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-white animate-float" style={{ animationDelay: '0s' }}></div>
           <div className="absolute top-3/4 left-1/3 w-24 h-24 rounded-full bg-white animate-float" style={{ animationDelay: '0.5s' }}></div>
@@ -80,7 +80,7 @@ const Landing: React.FC = () => {
                 className="text-lg opacity-90 mb-8 max-w-lg"
                 variants={fadeInUp}
               >
-                cAIrismatic analyzes any makeup look and provides real-time AI coaching to help you recreate it perfectly.
+                ChAIrismatic analyzes any makeup look and provides real-time AI coaching to help you recreate it perfectly.
               </motion.p>
               
               {isAuthenticated ? (
@@ -91,7 +91,7 @@ const Landing: React.FC = () => {
                   <Button 
                     size="lg" 
                     variant="primary" 
-                    className="bg-white text-cairismatic-purple hover:text-cairismatic-pink"
+                    className="bg-white text-chairismatic-purple hover:text-chairismatic-pink"
                     onClick={() => navigate('/dashboard')}
                   >
                     Go to Dashboard
@@ -222,7 +222,7 @@ const Landing: React.FC = () => {
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-semibold">{coach.name}</h3>
-                  <p className="text-cairismatic-purple font-medium">{coach.role}</p>
+                  <p className="text-chairismatic-purple font-medium">{coach.role}</p>
                   <p className="text-gray-600 text-sm mt-2">
                     <strong>Expertise:</strong> {coach.expertise}
                   </p>
@@ -237,16 +237,16 @@ const Landing: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-cairismatic-pink to-cairismatic-purple text-white">
+      <section className="py-16 bg-gradient-to-r from-chairismatic-pink to-chairismatic-purple text-white">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 font-display">Ready to Transform Your Beauty Routine?</h2>
           <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-            Join thousands of beauty enthusiasts who are perfecting their skills with cAIrismatic
+            Join thousands of beauty enthusiasts who are perfecting their skills with ChAIrismatic
           </p>
           <Button 
             size="xl" 
             variant="primary" 
-            className="bg-white text-cairismatic-purple hover:bg-gray-100"
+            className="bg-white text-chairismatic-purple hover:bg-gray-100"
             onClick={() => navigate('/onboarding')}
           >
             Get Started Free

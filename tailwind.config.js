@@ -8,7 +8,7 @@ export default {
         display: ['"Playfair Display"', 'serif'],
       },
       colors: {
-        cairismatic: {
+        chairismatic: {
           pink: '#FF6B9D',
           purple: '#C44EFF',
           blue: '#4E9AFF',
