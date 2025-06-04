@@ -10,10 +10,12 @@ import Card from '../components/common/Card';
 import GradientText from '../components/common/GradientText';
 import LookCard from '../components/beauty/LookCard';
 import ProgressRing from '../components/common/ProgressRing';
+import { useProgressStore } from '../store/progressStore';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { trendingLooks, selectedCoach } = useAppStore();
+  const { level, experience, streak, completedLooks } = useProgressStore();
 
   const quickActions = [
     {
@@ -122,20 +124,20 @@ const Dashboard: React.FC = () => {
                     <ProgressRing progress={65} size={80} strokeWidth={8} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-1">Beauty Expert Level</h3>
+                    <h3 className="text-xl font-semibold mb-1">Beauty Expert Level {level}</h3>
                     <div className="flex items-center mb-3">
                       <Crown size={16} className="mr-1" />
-                      <span className="font-medium">Intermediate</span>
-                      <span className="ml-2 text-sm opacity-80">6,500 points</span>
+                      <span className="font-medium">Level {level}</span>
+                      <span className="ml-2 text-sm opacity-80">{experience} XP</span>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="opacity-80">Completed Looks</p>
-                        <p className="font-semibold text-lg">12</p>
+                        <p className="font-semibold text-lg">{completedLooks}</p>
                       </div>
                       <div>
                         <p className="opacity-80">Streak</p>
-                        <p className="font-semibold text-lg">3 days</p>
+                        <p className="font-semibold text-lg">{streak} days</p>
                       </div>
                     </div>
                   </div>
@@ -143,7 +145,7 @@ const Dashboard: React.FC = () => {
                     <Button
                       variant="secondary"
                       className="!bg-white !text-chairismatic-purple hover:!bg-gray-100"
-                      onClick={() => navigate('/profile')}
+                      onClick={() => navigate('/progress')}
                     >
                       View Progress
                     </Button>

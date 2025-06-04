@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import ScanLook from './pages/ScanLook';
 import LiveCoach from './pages/LiveCoach';
 import Trends from './pages/Trends';
+import Progress from './pages/Progress';
 
 const App: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
@@ -54,6 +55,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <Trends />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/progress" 
+          element={
+            <ProtectedRoute>
+              <Progress />
             </ProtectedRoute>
           } 
         />
