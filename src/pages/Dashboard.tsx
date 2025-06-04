@@ -141,8 +141,8 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div className="ml-auto mt-4 md:mt-0">
                     <Button
-                      variant="primary"
-                      className="bg-white text-chairismatic-purple hover:bg-gray-100"
+                      variant="secondary"
+                      className="!bg-white !text-chairismatic-purple hover:!bg-gray-100"
                       onClick={() => navigate('/profile')}
                     >
                       View Progress
