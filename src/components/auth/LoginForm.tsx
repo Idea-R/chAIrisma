@@ -69,7 +69,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink text-gray-900 bg-white"
               placeholder={mode === 'login' ? 'Enter username' : 'Choose username'}
               required
             />
@@ -83,7 +83,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink text-gray-900 bg-white"
               placeholder={mode === 'login' ? 'Enter password' : 'Choose password'}
               required
             />
