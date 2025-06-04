@@ -1,4 +1,3 @@
-import * as tf from '@tensorflow/tfjs';
 import { MakeupAnalysis, MakeupRegion, Product } from '../types';
 
 // Define facial feature regions and their corresponding landmarks
@@ -20,98 +19,50 @@ const rgbToHex = (r: number, g: number, b: number): string => {
   }).join('');
 };
 
-const getAverageColor = async (imageData: ImageData, points: number[][]): Promise<string> => {
-  // Convert ImageData to tensor
-  const tensor = tf.browser.fromPixels(imageData);
-  
-  // Create a mask for the region
-  const mask = tf.zeros([imageData.height, imageData.width]);
-  const updates = tf.ones([points.length]);
-  const indices = tf.tensor2d(points, [points.length, 2], 'int32');
-  const regionMask = tf.scatter(mask, indices, updates);
-  
-  // Apply mask to image
-  const maskedImage = tf.mul(tensor, tf.stack([regionMask, regionMask, regionMask], -1));
-  
-  // Calculate average color
-  const meanColor = tf.mean(maskedImage, [0, 1]);
-  const colorValues = await meanColor.array();
-  
-  // Cleanup
-  tensor.dispose();
-  mask.dispose();
-  updates.dispose();
-  indices.dispose();
-  regionMask.dispose();
-  maskedImage.dispose();
-  meanColor.dispose();
-  
+const getAverageColor = (imageData: ImageData, points: number[][]): string => {
+  let r = 0, g = 0, b = 0;
+  const numPoints = points.length;
+
+  points.forEach(([x, y]) => {
+    const i = (y * imageData.width + x) * 4;
+    r += imageData.data[i];
+    g += imageData.data[i + 1];
+    b += imageData.data[i + 2];
+  });
+
   return rgbToHex(
-    Math.round(colorValues[0]),
-    Math.round(colorValues[1]),
-    Math.round(colorValues[2])
+    Math.round(r / numPoints),
+    Math.round(g / numPoints),
+    Math.round(b / numPoints)
   );
 };
 
-// Color similarity calculation
-const getColorSimilarity = (color1: string, color2: string): number => {
-  const rgb1 = color1.match(/[0-9a-f]{2}/gi)!.map(hex => parseInt(hex, 16));
-  const rgb2 = color2.match(/[0-9a-f]{2}/gi)!.map(hex => parseInt(hex, 16));
-  
-  const rmean = (rgb1[0] + rgb2[0]) / 2;
-  const r = rgb1[0] - rgb2[0];
-  const g = rgb1[1] - rgb2[1];
-  const b = rgb1[2] - rgb2[2];
-  
-  return 1 - Math.sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8)) / 764.8333151739665;
-};
-
 // Product recommendation based on color
-const recommendProducts = async (color: string, category: string): Promise<Product[]> => {
+const recommendProducts = (color: string, category: string): Product[] => {
   // This would typically call an API with a product database
-  // For now, returning mock products with color matching
-  const productDatabase: Product[] = [
+  // For now, returning mock products
+  return [
     {
       id: `${category}-1`,
-      name: `${category} - Natural Glow`,
+      name: `${category} - Shade Match`,
       brand: 'Luxury Brand',
       category,
       price: 29.99,
       imageUrl: 'https://images.pexels.com/photos/2688992/pexels-photo-2688992.jpeg',
-      colors: ['#FFD5C2', '#F8B195', '#D1A08F'],
+      colors: [color],
       rating: 4.5,
     },
     {
       id: `${category}-2`,
-      name: `${category} - Bold Statement`,
+      name: `${category} - Pro Collection`,
       brand: 'Beauty Co',
       category,
       price: 39.99,
       imageUrl: 'https://images.pexels.com/photos/2533266/pexels-photo-2533266.jpeg',
-      colors: ['#D35D6E', '#FF5964', '#B31E2F'],
+      colors: [color],
       rating: 4.8,
     },
-    {
-      id: `${category}-3`,
-      name: `${category} - Neutral Basics`,
-      brand: 'Essentials',
-      category,
-      price: 24.99,
-      imageUrl: 'https://images.pexels.com/photos/2639947/pexels-photo-2639947.jpeg',
-      colors: ['#E5C7B5', '#C5A898', '#8C7266'],
-      rating: 4.3,
-    },
   ];
-  
-  // Sort products by color similarity
-  return productDatabase
-    .map(product => ({
-      ...product,
-      similarity: Math.max(...(product.colors || []).map(c => getColorSimilarity(color, c))),
-    }))
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 3)
-    .map(({ similarity, ...product }) => product);
 };
 
 // Main analysis function
@@ -127,7 +78,7 @@ export const analyzeMakeup = async (
   const products: Product[] = [];
 
   // Analyze each facial region
-  for (const [regionName, landmarks] of Object.entries(FACIAL_REGIONS)) {
+  Object.entries(FACIAL_REGIONS).forEach(([regionName, landmarks]) => {
     const points = Array.isArray(landmarks) 
       ? landmarks.map(i => [
           Math.round(faceMeshResults.multiFaceLandmarks[0][i].x * canvas.width),
@@ -140,18 +91,17 @@ export const analyzeMakeup = async (
           ])
         );
 
-    const color = await getAverageColor(imageData, points);
-    const recommendedProducts = await recommendProducts(color, regionName);
+    const color = getAverageColor(imageData, points);
     
     regions[regionName] = {
       name: regionName,
       landmarks: Array.isArray(landmarks) ? landmarks : Object.values(landmarks).flat(),
       colors: [color],
-      products: recommendedProducts,
+      products: recommendProducts(color, regionName),
     };
 
-    products.push(...recommendedProducts);
-  }
+    products.push(...regions[regionName].products!);
+  });
 
   return {
     regions,
