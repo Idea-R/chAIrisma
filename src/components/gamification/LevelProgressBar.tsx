@@ -36,3 +36,5 @@ const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
     </div>
   );
 };
+
+export default LevelProgressBar;
