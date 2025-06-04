@@ -23,6 +23,15 @@ const FaceMeshRenderer: React.FC<FaceMeshRendererProps> = ({
     const initializeFaceMesh = async () => {
       if (!videoRef.current || !canvasRef.current) return;
 
+      // Wait for video metadata to load
+      await new Promise<void>((resolve) => {
+        if (videoRef.current!.readyState >= 2) {
+          resolve();
+        } else {
+          videoRef.current!.onloadedmetadata = () => resolve();
+        }
+      });
+
       faceMesh = new FaceMesh({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
       });
@@ -67,7 +76,7 @@ const FaceMeshRenderer: React.FC<FaceMeshRendererProps> = ({
 
       camera = new Camera(videoRef.current, {
         onFrame: async () => {
-          if (faceMesh) {
+          if (faceMesh && videoRef.current) {
             await faceMesh.send({ image: videoRef.current });
           }
         },
