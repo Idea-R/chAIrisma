@@ -48,3 +48,5 @@ const AchievementBadge: React.FC<AchievementBadgeProps> = ({
     </motion.div>
   );
 };
+
+export default AchievementBadge;
