@@ -34,3 +34,5 @@ const SkillMeter: React.FC<SkillMeterProps> = ({ skill }) => {
     </div>
   );
 };
+
+export default SkillMeter;

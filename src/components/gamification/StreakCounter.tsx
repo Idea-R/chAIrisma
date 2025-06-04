@@ -18,3 +18,5 @@ const StreakCounter: React.FC<StreakCounterProps> = ({ streak }) => {
     </motion.div>
   );
 };
+
+export default StreakCounter;

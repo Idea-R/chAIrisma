@@ -34,3 +34,5 @@ const DailyChallenge: React.FC<DailyChallengeProps> = ({ challenge, onComplete }
     </motion.div>
   );
 };
+
+export default DailyChallenge;
