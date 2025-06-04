@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, Camera, Link, ImagePlus, Trash2, Share2, AlertCircle } from 'lucide-react';
+import { UploadCloud, Camera, Link, ImagePlus, Trash2, Share2, AlertCircle, Search, Film, Instagram } from 'lucide-react';
 import Navigation from '../components/common/Navigation';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
@@ -11,16 +11,21 @@ import FaceMeshRenderer from '../components/beauty/FaceMeshRenderer';
 import MakeupAnalysisOverlay from '../components/beauty/MakeupAnalysisOverlay';
 import { MakeupAnalysis } from '../types';
 
+type ScanMethod = 'upload' | 'camera' | 'url' | 'search' | null;
+type ContentType = 'image' | 'instagram' | 'video' | 'search';
+
 const ScanLook: React.FC = () => {
-  const [activeMethod, setActiveMethod] = useState<'upload' | 'camera' | 'url' | null>(null);
+  const [activeMethod, setActiveMethod] = useState<ScanMethod>(null);
+  const [contentType, setContentType] = useState<ContentType>('image');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<MakeupAnalysis | null>(null);
   const [urlInput, setUrlInput] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  
+
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -33,7 +38,7 @@ const ScanLook: React.FC = () => {
       reader.readAsDataURL(file);
     }
   }, []);
-  
+
   const handleCameraCapture = useCallback((imageSrc: string) => {
     setImageUrl(imageSrc);
     setActiveMethod(null);
@@ -49,32 +54,109 @@ const ScanLook: React.FC = () => {
       return false;
     }
   };
-  
-  const handleUrlSubmit = useCallback(() => {
+
+  const isInstagramUrl = (url: string): boolean => {
+    try {
+      const parsedUrl = new URL(url);
+      return parsedUrl.hostname === 'www.instagram.com' || parsedUrl.hostname === 'instagram.com';
+    } catch {
+      return false;
+    }
+  };
+
+  const handleUrlSubmit = useCallback(async () => {
     setUrlError(null);
     setAnalysisError(null);
-    
+
     if (!urlInput.trim()) {
       setUrlError('Please enter a URL');
       return;
     }
-    
-    if (!isValidImageUrl(urlInput)) {
-      setUrlError('Please enter a direct link to an image file (ending in .jpg, .png, etc.)');
+
+    setIsAnalyzing(true);
+
+    try {
+      if (contentType === 'instagram') {
+        if (!isInstagramUrl(urlInput)) {
+          setUrlError('Please enter a valid Instagram post URL');
+          return;
+        }
+        // Here we would call our edge function to handle Instagram scraping
+        const response = await fetch('/api/instagram-scraper', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: urlInput })
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch Instagram content');
+        
+        const data = await response.json();
+        setImageUrl(data.imageUrl);
+        startAnalysis(data.imageUrl);
+      } else if (contentType === 'video') {
+        // Handle video URL analysis
+        const response = await fetch('/api/video-analyzer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: urlInput })
+        });
+        
+        if (!response.ok) throw new Error('Failed to analyze video');
+        
+        const data = await response.json();
+        setImageUrl(data.thumbnailUrl);
+        startAnalysis(data.thumbnailUrl);
+      } else {
+        if (!isValidImageUrl(urlInput)) {
+          setUrlError('Please enter a direct link to an image file (ending in .jpg, .png, etc.)');
+          return;
+        }
+        setImageUrl(urlInput);
+        startAnalysis(urlInput);
+      }
+    } catch (error) {
+      console.error('URL processing failed:', error);
+      setUrlError(error instanceof Error ? error.message : 'Failed to process URL');
+      setIsAnalyzing(false);
+    }
+  }, [urlInput, contentType]);
+
+  const handleSearchSubmit = useCallback(async () => {
+    setUrlError(null);
+    setAnalysisError(null);
+
+    if (!searchInput.trim()) {
+      setUrlError('Please enter a search query');
       return;
     }
-    
+
     setIsAnalyzing(true);
-    setImageUrl(urlInput);
-    startAnalysis(urlInput);
-  }, [urlInput]);
-  
+
+    try {
+      // Call our AI search edge function
+      const response = await fetch('/api/search-analyzer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchInput })
+      });
+
+      if (!response.ok) throw new Error('Failed to process search');
+
+      const data = await response.json();
+      setImageUrl(data.imageUrl);
+      startAnalysis(data.imageUrl);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setAnalysisError(error instanceof Error ? error.message : 'Failed to process search');
+      setIsAnalyzing(false);
+    }
+  }, [searchInput]);
+
   const startAnalysis = useCallback(async (imageSource: string) => {
     setIsAnalyzing(true);
     setAnalysisError(null);
     
     try {
-      // Load the image
       const img = new Image();
       img.crossOrigin = "anonymous";
       
@@ -84,7 +166,6 @@ const ScanLook: React.FC = () => {
         img.src = imageSource;
       });
       
-      // Create a canvas to process the image
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
       canvas.height = img.height;
@@ -94,16 +175,13 @@ const ScanLook: React.FC = () => {
         throw new Error('Could not initialize image processing');
       }
       
-      // Draw the image to the canvas
       ctx.drawImage(img, 0, 0);
       
-      // Initialize face mesh
       const faceMesh = await import('@mediapipe/face_mesh');
       const detector = new faceMesh.FaceMesh({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
       });
       
-      // Configure face mesh
       detector.setOptions({
         maxNumFaces: 1,
         refineLandmarks: true,
@@ -111,10 +189,8 @@ const ScanLook: React.FC = () => {
         minTrackingConfidence: 0.5
       });
       
-      // Process the image
       const results = await detector.send({ image: img });
       
-      // Analyze makeup using our utility
       const { analyzeMakeup } = await import('../utils/makeupDetection');
       const analysis = await analyzeMakeup(canvas, results);
       
@@ -127,7 +203,7 @@ const ScanLook: React.FC = () => {
       setIsAnalyzing(false);
     }
   }, []);
-  
+
   const resetScan = useCallback(() => {
     setImageUrl(null);
     setAnalysisResult(null);
@@ -136,6 +212,8 @@ const ScanLook: React.FC = () => {
     setUrlError(null);
     setAnalysisError(null);
     setUrlInput('');
+    setSearchInput('');
+    setContentType('image');
   }, []);
 
   const handleRegionClick = useCallback((regionName: string) => {
@@ -282,12 +360,15 @@ const ScanLook: React.FC = () => {
               How would you like to scan a look?
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <Button
                 variant={activeMethod === 'upload' ? 'primary' : 'secondary'}
                 className="flex flex-col items-center py-6"
                 fullWidth
-                onClick={() => setActiveMethod('upload')}
+                onClick={() => {
+                  setActiveMethod('upload');
+                  setContentType('image');
+                }}
               >
                 <UploadCloud size={32} className="mb-2" />
                 <span>Upload Image</span>
@@ -297,7 +378,10 @@ const ScanLook: React.FC = () => {
                 variant={activeMethod === 'camera' ? 'primary' : 'secondary'}
                 className="flex flex-col items-center py-6"
                 fullWidth
-                onClick={() => setActiveMethod('camera')}
+                onClick={() => {
+                  setActiveMethod('camera');
+                  setContentType('image');
+                }}
               >
                 <Camera size={32} className="mb-2" />
                 <span>Use Camera</span>
@@ -311,6 +395,19 @@ const ScanLook: React.FC = () => {
               >
                 <Link size={32} className="mb-2" />
                 <span>Enter URL</span>
+              </Button>
+
+              <Button
+                variant={activeMethod === 'search' ? 'primary' : 'secondary'}
+                className="flex flex-col items-center py-6"
+                fullWidth
+                onClick={() => {
+                  setActiveMethod('search');
+                  setContentType('search');
+                }}
+              >
+                <Search size={32} className="mb-2" />
+                <span>Search Look</span>
               </Button>
             </div>
             
@@ -356,19 +453,103 @@ const ScanLook: React.FC = () => {
                   exit={{ opacity: 0, y: -20 }}
                   className="border-2 border-gray-300 rounded-lg p-6"
                 >
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium mb-4">What type of content?</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        variant={contentType === 'image' ? 'primary' : 'secondary'}
+                        onClick={() => setContentType('image')}
+                        icon={<ImagePlus size={18} />}
+                      >
+                        Image
+                      </Button>
+                      <Button
+                        variant={contentType === 'instagram' ? 'primary' : 'secondary'}
+                        onClick={() => setContentType('instagram')}
+                        icon={<Instagram size={18} />}
+                      >
+                        Instagram Post
+                      </Button>
+                      <Button
+                        variant={contentType === 'video' ? 'primary' : 'secondary'}
+                        onClick={() => setContentType('video')}
+                        icon={<Film size={18} />}
+                      >
+                        Video
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {contentType === 'image' && 'Enter direct image URL'}
+                        {contentType === 'instagram' && 'Enter Instagram post URL'}
+                        {contentType === 'video' && 'Enter video URL'}
+                      </label>
+                      <div className="flex">
+                        <input
+                          type="text"
+                          value={urlInput}
+                          onChange={(e) => {
+                            setUrlInput(e.target.value);
+                            setUrlError(null);
+                          }}
+                          placeholder={
+                            contentType === 'image' 
+                              ? "https://example.com/image.jpg"
+                              : contentType === 'instagram'
+                              ? "https://instagram.com/p/..."
+                              : "https://youtube.com/watch?v=..."
+                          }
+                          className={`flex-grow px-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink ${
+                            urlError ? 'border-red-300' : 'border-gray-300'
+                          }`}
+                        />
+                        <Button 
+                          variant="primary"
+                          className="rounded-l-none"
+                          onClick={handleUrlSubmit}
+                        >
+                          Analyze
+                        </Button>
+                      </div>
+                      {urlError && (
+                        <p className="text-red-600 text-sm flex items-center mt-2">
+                          <AlertCircle size={16} className="mr-2" />
+                          {urlError}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500 mt-2">
+                        {contentType === 'image' && 'Please provide a direct link to an image file (e.g., ending in .jpg, .png)'}
+                        {contentType === 'instagram' && 'Enter the URL of any public Instagram post'}
+                        {contentType === 'video' && 'Enter the URL of any YouTube, TikTok, or other video'}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeMethod === 'search' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="border-2 border-gray-300 rounded-lg p-6"
+                >
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Enter direct image URL
+                    Describe the look you want to analyze
                   </label>
                   <div className="space-y-4">
                     <div className="flex">
                       <input
                         type="text"
-                        value={urlInput}
+                        value={searchInput}
                         onChange={(e) => {
-                          setUrlInput(e.target.value);
+                          setSearchInput(e.target.value);
                           setUrlError(null);
                         }}
-                        placeholder="https://example.com/image.jpg"
+                        placeholder="E.g., Emma Stone's makeup in La La Land opening scene"
                         className={`flex-grow px-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink ${
                           urlError ? 'border-red-300' : 'border-gray-300'
                         }`}
@@ -376,9 +557,9 @@ const ScanLook: React.FC = () => {
                       <Button 
                         variant="primary"
                         className="rounded-l-none"
-                        onClick={handleUrlSubmit}
+                        onClick={handleSearchSubmit}
                       >
-                        Analyze
+                        Search
                       </Button>
                     </div>
                     {urlError && (
@@ -388,7 +569,7 @@ const ScanLook: React.FC = () => {
                       </p>
                     )}
                     <p className="text-sm text-gray-500">
-                      Please provide a direct link to an image file (e.g., ending in .jpg, .png)
+                      Describe any celebrity look, movie scene, or specific makeup style you want to analyze
                     </p>
                   </div>
                 </motion.div>
