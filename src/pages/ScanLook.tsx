@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, Camera, Link, ImagePlus, Trash2, Share2 } from 'lucide-react';
+import { UploadCloud, Camera, Link, ImagePlus, Trash2, Share2, AlertCircle } from 'lucide-react';
 import Navigation from '../components/common/Navigation';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
@@ -17,6 +17,8 @@ const ScanLook: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<MakeupAnalysis | null>(null);
   const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,34 +39,49 @@ const ScanLook: React.FC = () => {
     setActiveMethod(null);
     startAnalysis(imageSrc);
   }, []);
+
+  const isValidImageUrl = (url: string): boolean => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    try {
+      const parsedUrl = new URL(url);
+      return imageExtensions.some(ext => parsedUrl.pathname.toLowerCase().endsWith(ext));
+    } catch {
+      return false;
+    }
+  };
   
   const handleUrlSubmit = useCallback(() => {
-    if (!urlInput.trim()) return;
+    setUrlError(null);
+    setAnalysisError(null);
+    
+    if (!urlInput.trim()) {
+      setUrlError('Please enter a URL');
+      return;
+    }
+    
+    if (!isValidImageUrl(urlInput)) {
+      setUrlError('Please enter a direct link to an image file (ending in .jpg, .png, etc.)');
+      return;
+    }
     
     setIsAnalyzing(true);
-    // Validate and process URL
-    try {
-      const url = new URL(urlInput);
-      setImageUrl(url.toString());
-      startAnalysis(url.toString());
-    } catch (error) {
-      console.error('Invalid URL:', error);
-      setIsAnalyzing(false);
-    }
+    setImageUrl(urlInput);
+    startAnalysis(urlInput);
   }, [urlInput]);
   
   const startAnalysis = useCallback(async (imageSource: string) => {
     setIsAnalyzing(true);
+    setAnalysisError(null);
     
     try {
       // Load the image
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = imageSource;
       
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = reject;
+        img.onerror = () => reject(new Error('Failed to load image. Please make sure the URL is accessible and points to a valid image file.'));
+        img.src = imageSource;
       });
       
       // Create a canvas to process the image
@@ -74,7 +91,7 @@ const ScanLook: React.FC = () => {
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
-        throw new Error('Could not get canvas context');
+        throw new Error('Could not initialize image processing');
       }
       
       // Draw the image to the canvas
@@ -104,7 +121,8 @@ const ScanLook: React.FC = () => {
       setAnalysisResult(analysis);
     } catch (error) {
       console.error('Analysis failed:', error);
-      // Handle error appropriately
+      setAnalysisError(error instanceof Error ? error.message : 'Failed to analyze the image. Please try again.');
+      setImageUrl(null);
     } finally {
       setIsAnalyzing(false);
     }
@@ -115,6 +133,9 @@ const ScanLook: React.FC = () => {
     setAnalysisResult(null);
     setActiveMethod(null);
     setSelectedRegion(null);
+    setUrlError(null);
+    setAnalysisError(null);
+    setUrlInput('');
   }, []);
 
   const handleRegionClick = useCallback((regionName: string) => {
@@ -146,7 +167,7 @@ const ScanLook: React.FC = () => {
               {Object.entries(analysisResult.regions).map(([name, region]) => (
                 <div 
                   key={name}
-                  className={`p-3 rounded-lg transition-colors ${
+                  className={`p-3 rounded-lg transition-colors cursor-pointer ${
                     selectedRegion === name ? 'bg-gray-100' : ''
                   }`}
                   onClick={() => handleRegionClick(name)}
@@ -236,7 +257,26 @@ const ScanLook: React.FC = () => {
           <GradientText>Scan Any Look</GradientText>
         </h1>
         
-        {!imageUrl ? (
+        {analysisError && (
+          <div className="max-w-2xl mx-auto mb-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
+              <AlertCircle className="text-red-500 flex-shrink-0 mr-3" size={20} />
+              <div>
+                <h3 className="text-red-800 font-medium">Analysis Failed</h3>
+                <p className="text-red-600 mt-1">{analysisError}</p>
+                <Button
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={resetScan}
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {!imageUrl && !analysisError ? (
           <Card className="max-w-2xl mx-auto p-6">
             <h2 className="text-xl font-semibold mb-6 text-center">
               How would you like to scan a look?
@@ -317,23 +357,39 @@ const ScanLook: React.FC = () => {
                   className="border-2 border-gray-300 rounded-lg p-6"
                 >
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Enter image URL or social media post
+                    Enter direct image URL
                   </label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      placeholder="https://instagram.com/p/..."
-                      className="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink"
-                    />
-                    <Button 
-                      variant="primary"
-                      className="rounded-l-none"
-                      onClick={handleUrlSubmit}
-                    >
-                      Analyze
-                    </Button>
+                  <div className="space-y-4">
+                    <div className="flex">
+                      <input
+                        type="text"
+                        value={urlInput}
+                        onChange={(e) => {
+                          setUrlInput(e.target.value);
+                          setUrlError(null);
+                        }}
+                        placeholder="https://example.com/image.jpg"
+                        className={`flex-grow px-4 py-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-chairismatic-pink ${
+                          urlError ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      />
+                      <Button 
+                        variant="primary"
+                        className="rounded-l-none"
+                        onClick={handleUrlSubmit}
+                      >
+                        Analyze
+                      </Button>
+                    </div>
+                    {urlError && (
+                      <p className="text-red-600 text-sm flex items-center">
+                        <AlertCircle size={16} className="mr-2" />
+                        {urlError}
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-500">
+                      Please provide a direct link to an image file (e.g., ending in .jpg, .png)
+                    </p>
                   </div>
                 </motion.div>
               )}
