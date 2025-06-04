@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Search, Award, Star, Users } from 'lucide-react';
 import GradientText from '../components/common/GradientText';
 import Button from '../components/common/Button';
+import LoginForm from '../components/auth/LoginForm';
+import { useAuthStore } from '../store/authStore';
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
   const features = [
     {
@@ -78,27 +82,27 @@ const Landing: React.FC = () => {
               >
                 ChAIrismatic analyzes any makeup look and provides real-time AI coaching to help you recreate it perfectly.
               </motion.p>
-              <motion.div 
-                className="flex flex-wrap gap-4"
-                variants={fadeInUp}
-              >
-                <Button 
-                  size="lg" 
-                  variant="primary" 
-                  className="bg-white text-chairismatic-purple hover:text-chairismatic-pink"
-                  onClick={() => navigate('/onboarding')}
+              
+              {isAuthenticated ? (
+                <motion.div 
+                  className="flex flex-wrap gap-4"
+                  variants={fadeInUp}
                 >
-                  Get Started
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="secondary" 
-                  className="!bg-transparent !border-white !text-white hover:!bg-white hover:!bg-opacity-10"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  Explore Looks
-                </Button>
-              </motion.div>
+                  <Button 
+                    size="lg" 
+                    variant="primary" 
+                    className="bg-white text-chairismatic-purple hover:text-chairismatic-pink"
+                    onClick={() => navigate('/dashboard')}
+                  >
+                    Go to Dashboard
+                  </Button>
+                </motion.div>
+              ) : (
+                <LoginForm 
+                  mode={authMode}
+                  onToggleMode={() => setAuthMode(mode => mode === 'login' ? 'signup' : 'login')}
+                />
+              )}
             </motion.div>
             
             <motion.div 

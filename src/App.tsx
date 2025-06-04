@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAppStore } from './store';
+import { useAuthStore } from './store/authStore';
 
 // Pages
 import Landing from './pages/Landing';
@@ -11,7 +11,7 @@ import LiveCoach from './pages/LiveCoach';
 import Trends from './pages/Trends';
 
 const App: React.FC = () => {
-  const { isAuthenticated } = useAppStore();
+  const { isAuthenticated } = useAuthStore();
   
   // Protected route component
   const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
