@@ -7,6 +7,10 @@ import Card from '../components/common/Card';
 import GradientText from '../components/common/GradientText';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import CameraView from '../components/beauty/CameraView';
+import ImageUploader from '../components/beauty/ImageUploader';
+import { analyzeMakeupInImage } from '../utils/imageAnalysis';
+import { extractImagesFromUrl } from '../utils/imageAnalysis';
+import { processImageUrl } from '../utils/imageProcessing';
 
 interface AnalysisResult {
   imageUrl: string;
@@ -30,76 +34,65 @@ const ScanLook: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [urlInput, setUrlInput] = useState('');
-  
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImageUrl(result);
-      };
-      reader.readAsDataURL(file);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleImageProcessed = async (processedImage: { url: string }) => {
+    setImageUrl(processedImage.url);
+    setActiveMethod(null);
+    await startAnalysis(processedImage.url);
+  };
+
+  const handleCameraCapture = async (imageSrc: string) => {
+    try {
+      setImageUrl(imageSrc);
+      setActiveMethod(null);
+      await startAnalysis(imageSrc);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to process camera image');
     }
   };
-  
-  const handleCameraCapture = (imageSrc: string) => {
-    setImageUrl(imageSrc);
-    setActiveMethod(null);
+
+  const handleUrlSubmit = async () => {
+    try {
+      setIsAnalyzing(true);
+      const images = await extractImagesFromUrl(urlInput);
+      
+      if (images.length === 0) {
+        throw new Error('No valid images found at the provided URL');
+      }
+
+      const processedImage = await processImageUrl(images[0].url);
+      setImageUrl(processedImage.url);
+      setUrlInput('');
+      await startAnalysis(processedImage.url);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to process URL');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
-  
-  const handleUrlSubmit = () => {
-    // In a real implementation, this would fetch the image from the URL
-    setImageUrl('https://images.pexels.com/photos/2681751/pexels-photo-2681751.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
-    setUrlInput('');
-  };
-  
-  const startAnalysis = () => {
+
+  const startAnalysis = async (imageUrl: string) => {
     if (!imageUrl) return;
     
     setIsAnalyzing(true);
+    setError(null);
     
-    // Simulate analysis - in a real app, this would call your backend or ML model
-    setTimeout(() => {
-      setAnalysisResult({
-        imageUrl: imageUrl,
-        regions: [
-          { name: 'Eyes', colors: ['#573D2B', '#8A5A44'], confidence: 0.92 },
-          { name: 'Lips', colors: ['#9E4C4F'], confidence: 0.88 },
-          { name: 'Cheeks', colors: ['#D98C93'], confidence: 0.78 }
-        ],
-        products: [
-          {
-            name: 'Smokey Eye Palette',
-            brand: 'Luxury Brand',
-            imageUrl: 'https://images.pexels.com/photos/2688992/pexels-photo-2688992.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-            price: 45.99,
-            category: 'Eyeshadow'
-          },
-          {
-            name: 'Matte Lipstick - Mauve',
-            brand: 'Beauty Co',
-            imageUrl: 'https://images.pexels.com/photos/2533266/pexels-photo-2533266.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-            price: 18.50,
-            category: 'Lipstick'
-          },
-          {
-            name: 'Cream Blush',
-            brand: 'Glow Inc',
-            imageUrl: 'https://images.pexels.com/photos/2639947/pexels-photo-2639947.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-            price: 22.00,
-            category: 'Blush'
-          }
-        ]
-      });
+    try {
+      const result = await analyzeMakeupInImage(imageUrl);
+      setAnalysisResult(result);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to analyze image');
+    } finally {
       setIsAnalyzing(false);
-    }, 3000);
+    }
   };
-  
+
   const resetScan = () => {
     setImageUrl(null);
     setAnalysisResult(null);
     setActiveMethod(null);
+    setError(null);
   };
 
   return (
@@ -111,6 +104,15 @@ const ScanLook: React.FC = () => {
           <GradientText>Scan Any Look</GradientText>
         </h1>
         
+        {error && (
+          <Card className="mb-6 bg-red-50 border-red-200">
+            <div className="flex items-center text-red-700">
+              <AlertCircle size={20} className="mr-2" />
+              <p>{error}</p>
+            </div>
+          </Card>
+        )}
+
         {!imageUrl ? (
           <Card className="max-w-2xl mx-auto p-6">
             <h2 className="text-xl font-semibold mb-6 text-center">
@@ -150,22 +152,10 @@ const ScanLook: React.FC = () => {
             </div>
             
             {activeMethod === 'upload' && (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <label className="cursor-pointer flex flex-col items-center">
-                  <UploadCloud size={48} className="text-gray-400 mb-4" />
-                  <span className="text-lg font-medium mb-2">Drop your image here</span>
-                  <span className="text-gray-500 mb-4">or click to browse</span>
-                  <Button variant="primary">
-                    Choose File
-                  </Button>
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                  />
-                </label>
-              </div>
+              <ImageUploader
+                onImageProcessed={handleImageProcessed}
+                onError={setError}
+              />
             )}
             
             {activeMethod === 'camera' && (
@@ -189,6 +179,7 @@ const ScanLook: React.FC = () => {
                     variant="primary"
                     className="rounded-l-none"
                     onClick={handleUrlSubmit}
+                    disabled={isAnalyzing}
                   >
                     Analyze
                   </Button>

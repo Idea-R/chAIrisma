@@ -32,6 +32,18 @@ const FaceMeshRenderer: React.FC<FaceMeshRendererProps> = ({
         }
       });
 
+      // Wait for video dimensions to be available
+      await new Promise<void>((resolve) => {
+        const checkDimensions = () => {
+          if (videoRef.current?.videoWidth && videoRef.current?.videoHeight) {
+            resolve();
+          } else {
+            requestAnimationFrame(checkDimensions);
+          }
+        };
+        checkDimensions();
+      });
+
       faceMesh = new FaceMesh({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
       });
