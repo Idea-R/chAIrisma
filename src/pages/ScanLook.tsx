@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { UploadCloud, Camera, Link, ImagePlus } from 'lucide-react';
+import { UploadCloud, Camera, Link, ImagePlus, AlertCircle } from 'lucide-react';
 import Navigation from '../components/common/Navigation';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';

@@ -30,7 +30,20 @@ serve(async (req) => {
       body: JSON.stringify({ image_url: imageUrl }),
     });
 
-    const aiData = await aiResponse.json();
+    if (!aiResponse.ok) {
+      throw new Error(`AI service error: ${aiResponse.status} ${aiResponse.statusText}`);
+    }
+
+    let aiData;
+    try {
+      aiData = await aiResponse.json();
+    } catch (error) {
+      throw new Error('Invalid response from AI service');
+    }
+
+    if (!aiData) {
+      throw new Error('Empty response from AI service');
+    }
 
     // Store analysis results
     const { data, error } = await supabaseClient
@@ -43,7 +56,10 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new Error('Failed to store analysis results');
+    }
 
     return new Response(
       JSON.stringify(data.analysis_results),
@@ -55,8 +71,13 @@ serve(async (req) => {
       },
     );
   } catch (error) {
+    console.error('Analysis error:', error);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred during makeup analysis',
+        details: error.stack
+      }),
       {
         status: 400,
         headers: {

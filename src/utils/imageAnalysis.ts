@@ -10,6 +10,9 @@ interface ImageInfo {
 export async function extractImagesFromUrl(url: string): Promise<ImageInfo[]> {
   try {
     const response = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
+    if (!response.ok) {
+      throw new Error(`Failed to extract images: ${response.status} ${response.statusText}`);
+    }
     const data = await response.json();
     return data.images;
   } catch (error) {
@@ -39,10 +42,28 @@ export async function analyzeMakeupInImage(imageUrl: string): Promise<MakeupAnal
       body: JSON.stringify({ imageUrl }),
     });
     
-    return await response.json();
+    if (!response.ok) {
+      let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // If error response isn't JSON, use the default error message
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    if (!data) {
+      throw new Error('Empty response from server');
+    }
+
+    return data;
   } catch (error) {
     console.error('Error analyzing makeup:', error);
-    throw new Error('Failed to analyze makeup in image');
+    throw new Error(error instanceof Error ? error.message : 'Failed to analyze makeup in image');
   }
 }
 
@@ -56,6 +77,10 @@ export async function findSimilarProducts(colors: string[], category: string) {
       body: JSON.stringify({ colors, category }),
     });
     
+    if (!response.ok) {
+      throw new Error(`Failed to find products: ${response.status} ${response.statusText}`);
+    }
+
     return await response.json();
   } catch (error) {
     console.error('Error finding similar products:', error);
